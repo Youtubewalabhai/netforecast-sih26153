@@ -42,9 +42,7 @@ data/
 *.pcapng
 *.csv
 
-# Model Checkpoints & Large Artifacts
-models/*.pt
-models/*.pth
+# Model Checkpoints & Large Artifacts (>50MB)
 *.onnx
 
 # Results & Logs
