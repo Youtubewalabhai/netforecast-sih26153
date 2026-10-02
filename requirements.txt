@@ -1,0 +1,25 @@
+# Core ML & Numerical
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.4.2
+torch==2.3.0
+scipy==1.13.0
+
+# Explainability & Metrics
+shap==0.45.0
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# Packet Processing
+scapy==2.5.0
+
+# Configuration & Serialization
+pyyaml==6.0.1
+joblib==1.4.0
+
+# Web Application
+streamlit==1.34.0
+plotly==5.22.0
+
+# Testing
+pytest==8.2.0

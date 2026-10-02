@@ -1,0 +1,4 @@
+{
+  "status": "pending_run",
+  "instructions": "Execute 'python -m netforecast.train' followed by 'python -m netforecast.evaluate' to generate real empirical metrics."
+}

@@ -1,0 +1,223 @@
+project:
+  name: "netforecast"
+  problem_statement: "SIH26153 - AI based Network Attack Forecasting from Network Traffic Data"
+  team: "CHECK_MATE"
+  seed: 42
+
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  dataset_type: "cic_ids_2018" # options: cic_ids_2018, ctu_13
+  selected_files:
+    - "02-14-2018.csv" # Benign + FTP-BruteForce, SSH-Bruteforce
+    - "02-15-2018.csv" # Benign + DoS-GoldenEye, DoS-Slowloris
+    - "02-28-2018.csv" # Benign + Infiltration
+  benign_subsample_ratio: 0.1 # Subsample benign flows to speed up CPU training
+  time_window_seconds: 10 # Aggregate state vector S_t resolution (seconds)
+  holdout_attack: "Infiltration" # For zero-shot / attack generalization test
+
+features:
+  flow_numeric_cols:
+    - "Dst Port"
+    - "Protocol"
+    - "Flow Duration"
+    - "Tot Fwd Pkts"
+    - "Tot Bwd Pkts"
+    - "TotLen Fwd Pkts"
+    - "TotLen Bwd Pkts"
+    - "Fwd Pkt Len Max"
+    - "Fwd Pkt Len Min"
+    - "Fwd Pkt Len Mean"
+    - "Fwd Pkt Len Std"
+    - "Bwd Pkt Len Max"
+    - "Bwd Pkt Len Min"
+    - "Bwd Pkt Len Mean"
+    - "Bwd Pkt Len Std"
+    - "Flow Byts/s"
+    - "Flow Pkts/s"
+    - "Flow IAT Mean"
+    - "Flow IAT Std"
+    - "Flow IAT Max"
+    - "Flow IAT Min"
+    - "Fwd IAT Tot"
+    - "Fwd IAT Mean"
+    - "Fwd IAT Std"
+    - "Fwd IAT Max"
+    - "Fwd IAT Min"
+    - "Bwd IAT Tot"
+    - "Bwd IAT Mean"
+    - "Bwd IAT Std"
+    - "Bwd IAT Max"
+    - "Bwd IAT Min"
+    - "Fwd PSH Flags"
+    - "Bwd PSH Flags"
+    - "Fwd URG Flags"
+    - "Bwd URG Flags"
+    - "Fwd Header Len"
+    - "Bwd Header Len"
+    - "Fwd Pkts/s"
+    - "Bwd Pkts/s"
+    - "Pkt Len Min"
+    - "Pkt Len Max"
+    - "Pkt Len Mean"
+    - "Pkt Len Std"
+    - "Pkt Len Var"
+    - "FIN Flag Cnt"
+    - "SYN Flag Cnt"
+    - "RST Flag Cnt"
+    - "PSH Flag Cnt"
+    - "ACK Flag Cnt"
+    - "URG Flag Cnt"
+    - "CWE Flag Count"
+    - "ECE Flag Cnt"
+    - "Down/Up Ratio"
+    - "Pkt Size Avg"
+    - "Fwd Seg Size Avg"
+    - "Bwd Seg Size Avg"
+    - "Subflow Fwd Pkts"
+    - "Subflow Fwd Byts"
+    - "Subflow Bwd Pkts"
+    - "Subflow Bwd Byts"
+    - "Init Fwd Win Byts"
+    - "Init Bwd Win Byts"
+    - "Fwd Act Data Pkts"
+    - "Fwd Seg Size Min"
+    - "Active Mean"
+    - "Active Std"
+    - "Active Max"
+    - "Active Min"
+    - "Idle Mean"
+    - "Idle Std"
+    - "Idle Max"
+    - "Idle Min"
+
+mitre_attack_mapping:
+  # Explicit assumption mapping dataset labels to MITRE ATT&CK Enterprise Matrix stages
+  "Benign":
+    stage: "Benign"
+    stage_id: 0
+    mitre_tactic: "None"
+    tactic_id: "TA0000"
+    is_infiltration: 0
+  "FTP-BruteForce":
+    stage: "Initial Access"
+    stage_id: 2
+    mitre_tactic: "Credential Access / Initial Access"
+    tactic_id: "T1110"
+    is_infiltration: 1
+  "SSH-Bruteforce":
+    stage: "Initial Access"
+    stage_id: 2
+    mitre_tactic: "Credential Access / Initial Access"
+    tactic_id: "T1110"
+    is_infiltration: 1
+  "DoS-GoldenEye":
+    stage: "Impact"
+    stage_id: 5
+    mitre_tactic: "Denial of Service"
+    tactic_id: "T1498"
+    is_infiltration: 0
+  "DoS-Slowloris":
+    stage: "Impact"
+    stage_id: 5
+    mitre_tactic: "Denial of Service"
+    tactic_id: "T1498"
+    is_infiltration: 0
+  "DoS attacks-SlowHTTPTest":
+    stage: "Impact"
+    stage_id: 5
+    mitre_tactic: "Denial of Service"
+    tactic_id: "T1498"
+    is_infiltration: 0
+  "DoS attacks-Hulk":
+    stage: "Impact"
+    stage_id: 5
+    mitre_tactic: "Denial of Service"
+    tactic_id: "T1498"
+    is_infiltration: 0
+  "DDoS attacks-LOIC-HTTP":
+    stage: "Impact"
+    stage_id: 5
+    mitre_tactic: "Denial of Service"
+    tactic_id: "T1498"
+    is_infiltration: 0
+  "DDOS attack-HOIC":
+    stage: "Impact"
+    stage_id: 5
+    mitre_tactic: "Denial of Service"
+    tactic_id: "T1498"
+    is_infiltration: 0
+  "DDOS attack-LOIC-UDP":
+    stage: "Impact"
+    stage_id: 5
+    mitre_tactic: "Denial of Service"
+    tactic_id: "T1498"
+    is_infiltration: 0
+  "Brute Force -Web":
+    stage: "Initial Access"
+    stage_id: 2
+    mitre_tactic: "Initial Access"
+    tactic_id: "T1190"
+    is_infiltration: 1
+  "Brute Force -XSS":
+    stage: "Initial Access"
+    stage_id: 2
+    mitre_tactic: "Initial Access"
+    tactic_id: "T1190"
+    is_infiltration: 1
+  "SQL Injection":
+    stage: "Initial Access"
+    stage_id: 2
+    mitre_tactic: "Initial Access / Defense Evasion"
+    tactic_id: "T1190"
+    is_infiltration: 1
+  "Infiltration":
+    stage: "Lateral Movement"
+    stage_id: 3
+    mitre_tactic: "Lateral Movement / Exfiltration"
+    tactic_id: "T1021"
+    is_infiltration: 1
+  "Bot":
+    stage: "Command and Control"
+    stage_id: 4
+    mitre_tactic: "Command and Control"
+    tactic_id: "T1071"
+    is_infiltration: 1
+
+stages:
+  0: "Benign"
+  1: "Reconnaissance"
+  2: "Initial Access"
+  3: "Lateral Movement"
+  4: "Command and Control"
+  5: "Exfiltration/Impact"
+
+model:
+  type: "lstm" # options: "lstm", "transformer"
+  input_dim: 72 # Updated dynamically from state vector S_t size
+  hidden_dim: 128
+  num_layers: 2
+  dropout: 0.2
+  seq_len: 12 # Input history length (12 windows = 120s if window=10s)
+  k_rollout: 5 # Number of future steps to forecast
+  loss_weights:
+    dynamics: 1.0 # Next-state MSE loss
+    infiltration: 2.0 # Infiltration BCE loss
+    stage: 1.5 # MITRE Stage CrossEntropy loss
+  learning_rate: 0.001
+  batch_size: 64
+  epochs: 15
+  device: "cpu"
+
+training:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+paths:
+  model_save: "models/world_model.pt"
+  scaler_save: "models/scaler.joblib"
+  baseline_save: "models/baseline.joblib"
+  metrics_json: "results/metrics.json"
+  metrics_md: "results/metrics.md"
+  plots_dir: "results/plots"
