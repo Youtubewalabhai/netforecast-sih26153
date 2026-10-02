@@ -9,9 +9,9 @@ data:
   processed_dir: "data/processed"
   dataset_type: "cic_ids_2018" # options: cic_ids_2018, ctu_13
   selected_files:
-    - "02-14-2018.csv" # Benign + FTP-BruteForce, SSH-Bruteforce
-    - "02-15-2018.csv" # Benign + DoS-GoldenEye, DoS-Slowloris
-    - "02-28-2018.csv" # Benign + Infiltration
+    - "Wednesday-14-02-2018_TrafficForML_CICFlowMeter.csv" # Benign + FTP-BruteForce, SSH-Bruteforce
+    - "Thursday-15-02-2018_TrafficForML_CICFlowMeter.csv" # Benign + DoS-GoldenEye, DoS-Slowloris
+    - "Wednesday-28-02-2018_TrafficForML_CICFlowMeter.csv" # Benign + Infiltration
   benign_subsample_ratio: 0.1 # Subsample benign flows to speed up CPU training
   time_window_seconds: 10 # Aggregate state vector S_t resolution (seconds)
   holdout_attack: "Infiltration" # For zero-shot / attack generalization test
