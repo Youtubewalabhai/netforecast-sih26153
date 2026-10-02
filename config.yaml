@@ -14,7 +14,7 @@ data:
     - "Wednesday-28-02-2018_TrafficForML_CICFlowMeter.csv" # Benign + Infiltration
   benign_subsample_ratio: 0.1 # Subsample benign flows to speed up CPU training
   time_window_seconds: 10 # Aggregate state vector S_t resolution (seconds)
-  holdout_attack: "Infiltration" # For zero-shot / attack generalization test
+  holdout_attack: "Infilteration" # For zero-shot / attack generalization test
 
 features:
   flow_numeric_cols:
@@ -111,6 +111,18 @@ mitre_attack_mapping:
     mitre_tactic: "Credential Access / Initial Access"
     tactic_id: "T1110"
     is_infiltration: 1
+  "DoS attacks-GoldenEye":
+    stage: "Impact"
+    stage_id: 5
+    mitre_tactic: "Denial of Service"
+    tactic_id: "T1498"
+    is_infiltration: 0
+  "DoS attacks-Slowloris":
+    stage: "Impact"
+    stage_id: 5
+    mitre_tactic: "Denial of Service"
+    tactic_id: "T1498"
+    is_infiltration: 0
   "DoS-GoldenEye":
     stage: "Impact"
     stage_id: 5
@@ -123,6 +135,18 @@ mitre_attack_mapping:
     mitre_tactic: "Denial of Service"
     tactic_id: "T1498"
     is_infiltration: 0
+  "Infilteration":
+    stage: "Lateral Movement"
+    stage_id: 3
+    mitre_tactic: "Lateral Movement / Exfiltration"
+    tactic_id: "T1021"
+    is_infiltration: 1
+  "Infiltration":
+    stage: "Lateral Movement"
+    stage_id: 3
+    mitre_tactic: "Lateral Movement / Exfiltration"
+    tactic_id: "T1021"
+    is_infiltration: 1
   "DoS attacks-SlowHTTPTest":
     stage: "Impact"
     stage_id: 5

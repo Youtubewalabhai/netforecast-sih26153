@@ -1,4 +1,120 @@
 {
-  "status": "pending_run",
-  "instructions": "Execute 'python -m netforecast.train' followed by 'python -m netforecast.evaluate' to generate real empirical metrics."
+  "is_synthetic": false,
+  "num_test_sequences": 1483,
+  "time_window_seconds": 10,
+  "k_rollout": 5,
+  "world_model_step1": {
+    "accuracy": 0.8469318948078219,
+    "precision": 0.9826839826839827,
+    "recall": 0.5044444444444445,
+    "f1": 0.6666666666666666,
+    "fpr": 0.003872216844143272,
+    "roc_auc": 0.9946090136603205,
+    "tp": 227,
+    "fp": 4,
+    "tn": 1029,
+    "fn": 223
+  },
+  "baseline_step1": {
+    "accuracy": 0.7403910991233985,
+    "precision": 1.0,
+    "recall": 0.14444444444444443,
+    "f1": 0.2524271844660194,
+    "fpr": 0.0,
+    "roc_auc": 0.9984790792728837,
+    "tp": 65,
+    "fp": 0,
+    "tn": 1033,
+    "fn": 385
+  },
+  "rollout_multi_step": {
+    "step_1": {
+      "accuracy": 0.8469318948078219,
+      "precision": 0.9826839826839827,
+      "recall": 0.5044444444444445,
+      "f1": 0.6666666666666666,
+      "fpr": 0.003872216844143272,
+      "roc_auc": 0.9946090136603205,
+      "tp": 227,
+      "fp": 4,
+      "tn": 1029,
+      "fn": 223
+    },
+    "step_2": {
+      "accuracy": 0.8408631153068106,
+      "precision": 0.9819819819819819,
+      "recall": 0.48444444444444446,
+      "f1": 0.6488095238095238,
+      "fpr": 0.003872216844143272,
+      "roc_auc": 0.9926879638593094,
+      "tp": 218,
+      "fp": 4,
+      "tn": 1029,
+      "fn": 232
+    },
+    "step_3": {
+      "accuracy": 0.8246797033041133,
+      "precision": 0.9611650485436893,
+      "recall": 0.44,
+      "f1": 0.6036585365853658,
+      "fpr": 0.007744433688286544,
+      "roc_auc": 0.9899322362052274,
+      "tp": 198,
+      "fp": 8,
+      "tn": 1025,
+      "fn": 252
+    },
+    "step_4": {
+      "accuracy": 0.813216453135536,
+      "precision": 0.9576719576719577,
+      "recall": 0.4022222222222222,
+      "f1": 0.5665101721439749,
+      "fpr": 0.007744433688286544,
+      "roc_auc": 0.9876712918145639,
+      "tp": 181,
+      "fp": 8,
+      "tn": 1025,
+      "fn": 269
+    },
+    "step_5": {
+      "accuracy": 0.8010788941335132,
+      "precision": 0.9585798816568047,
+      "recall": 0.36,
+      "f1": 0.5234248788368336,
+      "fpr": 0.006776379477250726,
+      "roc_auc": 0.9861245563084866,
+      "tp": 162,
+      "fp": 7,
+      "tn": 1026,
+      "fn": 288
+    }
+  },
+  "generalization_holdout_test": {
+    "holdout_attack": "Infilteration",
+    "sample_count": 440,
+    "world_model": {
+      "accuracy": 0.4386792452830189,
+      "precision": 1.0,
+      "recall": 0.4386792452830189,
+      "f1": 0.6098360655737705,
+      "fpr": 0.0,
+      "roc_auc": 0.5,
+      "tp": 186,
+      "fp": 0,
+      "tn": 0,
+      "fn": 238
+    },
+    "baseline": {
+      "accuracy": 0.12971698113207547,
+      "precision": 1.0,
+      "recall": 0.12971698113207547,
+      "f1": 0.22964509394572025,
+      "fpr": 0.0,
+      "roc_auc": 0.5,
+      "tp": 55,
+      "fp": 0,
+      "tn": 0,
+      "fn": 369
+    }
+  }
 }
