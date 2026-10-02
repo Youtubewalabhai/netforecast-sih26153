@@ -6,6 +6,7 @@ infiltration probability and MITRE ATT&CK stage progression.
 
 from typing import Dict, Optional, Tuple, Union
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
