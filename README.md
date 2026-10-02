@@ -98,7 +98,7 @@ netforecast/
 ### 1. Clone Repository & Setup Virtual Environment
 ```bash
 git clone https://github.com/Youtubewalabhai/netforecast-sih26153.git
-cd netforecast
+cd netforecast-sih26153
 python -m venv venv
 # On Windows:
 venv\Scripts\activate
@@ -109,7 +109,7 @@ source venv/bin/activate
 ### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
-pip install -e src/
+pip install -e .
 ```
 
 ---
@@ -123,10 +123,10 @@ Download the selected CIC-IDS-2018 CSV subset into `data/raw/`:
 bash scripts/download_data.sh
 
 # Or manually download:
-# 1. 02-14-2018.csv (FTP-BruteForce / SSH-Bruteforce)
-# 2. 02-15-2018.csv (DoS-GoldenEye / DoS-Slowloris)
-# 3. 02-28-2018.csv (Infiltration)
-# Place them inside: netforecast/data/raw/
+# 1. Wednesday-14-02-2018_TrafficForML_CICFlowMeter.csv (FTP-BruteForce / SSH-Bruteforce)
+# 2. Thursday-15-02-2018_TrafficForML_CICFlowMeter.csv (DoS-GoldenEye / DoS-Slowloris)
+# 3. Wednesday-28-02-2018_TrafficForML_CICFlowMeter.csv (Infiltration)
+# Place them inside: netforecast-sih26153/data/raw/
 ```
 
 ---
@@ -144,7 +144,7 @@ python -m netforecast.train --config config.yaml --synthetic
 
 ### Evaluation & Metrics Generation
 ```bash
-# Evaluates World Model vs Baseline, generates ROC/Confusion matrices, and writes results/metrics.md:
+# Evaluates World Model vs Baseline with validation-tuned thresholds and writes results/metrics.md:
 python -m netforecast.evaluate --config config.yaml
 ```
 
@@ -152,28 +152,49 @@ python -m netforecast.evaluate --config config.yaml
 
 ## 📊 Empirical Evaluation Results
 
-> Evaluated on **CIC-IDS-2018 Cleaned Telemetry** across 1,483 strict time-partitioned test sequences (10s window resolution, K=5 horizon).
+> Evaluated on **CIC-IDS-2018 Cleaned Telemetry** across 1,483 strict time-partitioned test sequences (10s window resolution, K=5 horizon).  
+> **Validation Threshold Tuning**: World Model = `0.0500`, Baseline = `0.0800`.
 
 ### Step t+1 Forecasting Performance
 
-| Model | F1-Score | Precision | Recall | False Positive Rate (FPR) | ROC-AUC | Accuracy |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **World Model (Ours)** | **0.6667** | **0.9827** | **0.5044** | **0.0039** | **0.9946** | **0.8469** |
-| **Baseline (Logistic Reg.)** | 0.2524 | 1.0000 | 0.1444 | 0.0000 | 0.9985 | 0.7404 |
+| Model | Decision Threshold | F1-Score | Precision | Recall | False Positive Rate (FPR) | ROC-AUC | Accuracy |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **World Model (Ours)** | **0.05** | **0.8062** | **0.9718** | **0.6889** | **0.0087** | **0.9946** | **0.8995** |
+| **Baseline (Logistic Reg.)** | 0.08 | 0.9727 | 0.9550 | 0.9911 | 0.0203 | 0.9985 | 0.9831 |
 
 ### Autoregressive Rollout Degradation (K-Step Ahead Simulation)
 
 | Forecast Horizon | F1-Score | Precision | Recall | FPR | ROC-AUC |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **t+1 (10s ahead)** | 0.6667 | 0.9827 | 0.5044 | 0.0039 | 0.9946 |
-| **t+2 (20s ahead)** | 0.6488 | 0.9820 | 0.4844 | 0.0039 | 0.9927 |
-| **t+3 (30s ahead)** | 0.6037 | 0.9612 | 0.4400 | 0.0077 | 0.9899 |
-| **t+4 (40s ahead)** | 0.5665 | 0.9577 | 0.4022 | 0.0077 | 0.9877 |
-| **t+5 (50s ahead)** | 0.5234 | 0.9586 | 0.3600 | 0.0068 | 0.9861 |
+| **t+1 (10s ahead)** | 0.8062 | 0.9718 | 0.6889 | 0.0087 | 0.9946 |
+| **t+2 (20s ahead)** | 0.7937 | 0.9711 | 0.6711 | 0.0087 | 0.9927 |
+| **t+3 (30s ahead)** | 0.7634 | 0.9660 | 0.6311 | 0.0097 | 0.9899 |
+| **t+4 (40s ahead)** | 0.7268 | 0.9668 | 0.5822 | 0.0087 | 0.9877 |
+| **t+5 (50s ahead)** | 0.6820 | 0.9673 | 0.5267 | 0.0077 | 0.9861 |
 
 ### Zero-Shot Attack Generalization Test (Holdout: `Infilteration`)
-- **Holdout Samples**: 440 time-window states
-- **World Model F1 on Unseen Attack**: **0.6098** (Recall: **0.4387**, FPR: **0.0000**)
+- **Sample Composition**: 424 attack windows, 0 benign windows (Total: 440 holdout windows).
+- **FPR Explanation**: $FPR = \frac{FP}{FP + TN}$. The held-out attack slice comprises exclusively attack windows (0 benign samples, $TN = 0, FP = 0$), making the false positive rate strictly $0.0000$.
+- **World Model Performance on Unseen Attack**: F1 = **0.7674** (Precision = **1.0000**, Recall = **0.6226**, FPR = **0.0000**).
+
+---
+
+## 🎯 MITRE ATT&CK Stage Taxonomy & Dataset Representation
+
+The table below details how dataset labels are mapped to the 6 standardized stages in `config.yaml`, along with dataset coverage:
+
+| Stage ID | MITRE Stage Name | Mapped Dataset Labels | MITRE Tactic / Technique | Dataset Representation Status |
+| :---: | :--- | :--- | :--- | :--- |
+| **0** | **Benign** | `Benign` | TA0000 (None) | ✅ Present (All days) |
+| **1** | **Reconnaissance** | `PortScan`, `Host Discovery` | T1046 (Network Service Discovery) | ⚠️ *Omitted in 3-day subset; extracted via PCAP parser* |
+| **2** | **Initial Access** | `FTP-BruteForce`, `SSH-Bruteforce`, `Brute Force -Web`, `SQL Injection` | T1110 (Credential Access), T1190 | ✅ Present (`02-14-2018.csv`) |
+| **3** | **Lateral Movement** | `Infilteration`, `Infiltration` | T1021 (Remote Services), T1083 | ✅ Present (`02-28-2018.csv`) |
+| **4** | **Command & Control** | `Bot` | T1071 (Application Layer Protocol) | ⚠️ *Present in full CIC-IDS-2018 (`03-02`), omitted in laptop subset* |
+| **5** | **Exfiltration / Impact** | `DoS attacks-GoldenEye`, `DoS attacks-Slowloris`, `DoS-GoldenEye`, `DDoS` | T1498 (Network Denial of Service) | ✅ Present (`02-15-2018.csv`) |
+
+### Stages Not Represented in the 3-File Subset:
+1. **Stage 1 (Reconnaissance)**: Port scanning and network discovery flows are absent in the 3 selected CSVs. Packet-level reconnaissance signatures (port entropy, sequential port scan ratio) are computed when `.pcap` files are provided via `pcap_features.py`.
+2. **Stage 4 (Command and Control)**: Botnet communication (`Bot`) exists in the complete 10-day dataset (`03-02-2018.csv`), but was excluded from the laptop-friendly 3-file training split to maintain execution times under 15 minutes.
 
 ---
 

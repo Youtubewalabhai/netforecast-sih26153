@@ -2,25 +2,27 @@
 
 > **Data Source**: CIC-IDS-2018 Cleaned Telemetry  
 > **Evaluation Split**: Strict Time-Based Partition (1483 test sequences)  
+> **Validation Threshold Tuning**: World Model = 0.0500, Baseline = 0.0800  
 > **Forecast Horizon**: K = 5 windows (50s forward)
 
 ## Step t+1 Forecasting Performance
 
-| Model | F1-Score | Precision | Recall | False Positive Rate (FPR) | ROC-AUC | Accuracy |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **World Model (Ours)** | **0.6667** | **0.9827** | **0.5044** | **0.0039** | **0.9946** | **0.8469** |
-| **Baseline (Logistic Reg.)** | 0.2524 | 1.0000 | 0.1444 | 0.0000 | 0.9985 | 0.7404 |
+| Model | Decision Threshold | F1-Score | Precision | Recall | False Positive Rate (FPR) | ROC-AUC | Accuracy |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **World Model (Ours)** | **0.05** | **0.8062** | **0.9718** | **0.6889** | **0.0087** | **0.9946** | **0.8995** |
+| **Baseline (Logistic Reg.)** | 0.08 | 0.9727 | 0.9550 | 0.9911 | 0.0203 | 0.9985 | 0.9831 |
 
 ## Autoregressive Rollout Degradation (K-Step Ahead)
 
 | Forecast Horizon | F1-Score | Precision | Recall | FPR | ROC-AUC |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **t+1 (10s)** | 0.6667 | 0.9827 | 0.5044 | 0.0039 | 0.9946 |
-| **t+2 (20s)** | 0.6488 | 0.9820 | 0.4844 | 0.0039 | 0.9927 |
-| **t+3 (30s)** | 0.6037 | 0.9612 | 0.4400 | 0.0077 | 0.9899 |
-| **t+4 (40s)** | 0.5665 | 0.9577 | 0.4022 | 0.0077 | 0.9877 |
-| **t+5 (50s)** | 0.5234 | 0.9586 | 0.3600 | 0.0068 | 0.9861 |
+| **t+1 (10s)** | 0.8062 | 0.9718 | 0.6889 | 0.0087 | 0.9946 |
+| **t+2 (20s)** | 0.7937 | 0.9711 | 0.6711 | 0.0087 | 0.9927 |
+| **t+3 (30s)** | 0.7634 | 0.9660 | 0.6311 | 0.0097 | 0.9899 |
+| **t+4 (40s)** | 0.7268 | 0.9668 | 0.5822 | 0.0087 | 0.9877 |
+| **t+5 (50s)** | 0.6820 | 0.9673 | 0.5267 | 0.0077 | 0.9861 |
 
 ## Zero-Shot Attack Generalization Test (Holdout: Infilteration)
-- **Status**: Evaluated on 440 holdout windows.
-- **World Model F1 on Unseen Attack**: 0.6098 (Recall: 0.4387, FPR: 0.0000)
+- **Sample Composition**: 424 attack windows, 0 benign windows (Total: 440)
+- **FPR Explanation**: FPR is 0.0000 because the held-out attack slice comprises exclusively attack windows (0 benign samples, TN=0, FP=0), making false positive count strictly 0.
+- **World Model Performance on Unseen Attack**: F1 = **0.7674** (Precision = 1.0000, Recall = 0.6226, FPR = 0.0000)

@@ -190,6 +190,9 @@ def main():
     seq_len = config["model"].get("seq_len", 12)
     k_rollout = config["model"].get("k_rollout", 5)
 
+    val_seq = build_sequential_dataset(
+        val_df, seq_len=seq_len, k_rollout=k_rollout, feature_cols=feature_cols
+    )
     test_seq = build_sequential_dataset(
         test_df, seq_len=seq_len, k_rollout=k_rollout, feature_cols=feature_cols
     )
@@ -216,7 +219,28 @@ def main():
     baseline = BaselineKStepClassifier()
     baseline.load(baseline_path)
 
-    # 4. Infiltration Step-1 Predictions
+    # 4. Tune Thresholds on Validation Split
+    x_val_tensor = torch.tensor(val_seq["X"], dtype=torch.float32).to(device)
+    with torch.no_grad():
+        _, val_inf_logits, _ = model(x_val_tensor)
+        wm_val_probs = torch.sigmoid(val_inf_logits).squeeze(-1).cpu().numpy()
+
+    y_val_inf = val_seq["Y_infil_next"].ravel()
+
+    # World Model threshold tuning
+    best_wm_thresh = 0.5
+    best_wm_f1 = -1.0
+    for t in np.linspace(0.05, 0.95, 91):
+        f1_t = f1_score(y_val_inf, (wm_val_probs >= t).astype(int), zero_division=0)
+        if f1_t > best_wm_f1:
+            best_wm_f1 = f1_t
+            best_wm_thresh = float(t)
+
+    # Baseline threshold tuning
+    best_base_thresh = baseline.tune_threshold(val_seq["X"], y_val_inf)
+    logger.info("Tuned validation thresholds -> World Model: %.4f (Val F1: %.4f), Baseline: %.4f", best_wm_thresh, best_wm_f1, best_base_thresh)
+
+    # 5. Infiltration Step-1 Predictions on Test Split
     x_test_tensor = torch.tensor(test_seq["X"], dtype=torch.float32).to(device)
     with torch.no_grad():
         next_s_pred, inf_logits, stg_logits = model(x_test_tensor)
@@ -227,10 +251,13 @@ def main():
     y_test_inf = test_seq["Y_infil_next"].ravel()
     y_test_stg = test_seq["Y_stage_next"].ravel()
 
-    wm_metrics = compute_binary_metrics(y_test_inf, wm_probs)
-    base_metrics = baseline.evaluate(test_seq["X"], y_test_inf)
+    wm_metrics = compute_binary_metrics(y_test_inf, wm_probs, threshold=best_wm_thresh)
+    wm_metrics["tuned_threshold"] = best_wm_thresh
 
-    # 5. K-Step Rollout Simulation Evaluation
+    base_metrics = baseline.evaluate(test_seq["X"], y_test_inf, threshold=best_base_thresh)
+    base_metrics["tuned_threshold"] = best_base_thresh
+
+    # 6. K-Step Rollout Simulation Evaluation
     simulator = RolloutSimulator(model=model, mapper=mapper, device=device)
     rollout_results = simulator.rollout_batch(test_seq["X"], k_steps=k_rollout)
 
@@ -239,11 +266,11 @@ def main():
         step_prob = rollout_results["infil_probabilities"][:, step_k]
         step_true = test_seq["Y_infil_rollout"][:, step_k]
         rollout_step_metrics[f"step_{step_k+1}"] = compute_binary_metrics(
-            step_true, step_prob
+            step_true, step_prob, threshold=best_wm_thresh
         )
 
-    # 6. Generalization / Holdout Attack Test
-    holdout_attack_name = config["data"].get("holdout_attack", "Infiltration")
+    # 7. Generalization / Holdout Attack Test
+    holdout_attack_name = config["data"].get("holdout_attack", "Infilteration")
     holdout_mask = (test_df["dominant_label"] == holdout_attack_name).values
     holdout_windows = test_df[holdout_mask]
 
@@ -256,31 +283,46 @@ def main():
         with torch.no_grad():
             _, h_inf_logits, _ = model(h_x_tensor)
             h_probs = torch.sigmoid(h_inf_logits).squeeze(-1).cpu().numpy()
-        gen_metrics["world_model"] = compute_binary_metrics(
-            holdout_seq["Y_infil_next"], h_probs
-        )
-        gen_metrics["baseline"] = baseline.evaluate(
-            holdout_seq["X"], holdout_seq["Y_infil_next"]
-        )
+        
+        h_y_true = holdout_seq["Y_infil_next"].ravel()
+        num_benign = int(np.sum(h_y_true == 0))
+        num_attack = int(np.sum(h_y_true == 1))
+
+        wm_gen_eval = compute_binary_metrics(h_y_true, h_probs, threshold=best_wm_thresh)
+        base_gen_eval = baseline.evaluate(holdout_seq["X"], h_y_true, threshold=best_base_thresh)
+
+        gen_metrics["benign_samples"] = num_benign
+        gen_metrics["attack_samples"] = num_attack
+        gen_metrics["world_model"] = wm_gen_eval
+        gen_metrics["baseline"] = base_gen_eval
+        
+        if num_benign == 0:
+            gen_metrics["fpr_explanation"] = (
+                "FPR is 0.0000 because the held-out attack slice comprises exclusively attack windows (0 benign samples, TN=0, FP=0), making false positive count strictly 0."
+            )
+        else:
+            gen_metrics["fpr_explanation"] = (
+                f"Evaluated on {num_benign} benign windows and {num_attack} attack windows (FP={wm_gen_eval['fp']}, TN={wm_gen_eval['tn']})."
+            )
     else:
         gen_metrics["note"] = f"Insufficient continuous holdout windows ({len(holdout_windows)}) for sequence rollout."
 
-    # 7. Generate Evaluation Plots
-    cm_wm = confusion_matrix(y_test_inf, (wm_probs >= 0.5).astype(int), labels=[0, 1])
+    # 8. Generate Evaluation Plots
+    cm_wm = confusion_matrix(y_test_inf, (wm_probs >= best_wm_thresh).astype(int), labels=[0, 1])
     save_confusion_matrix_plot(
         cm_wm,
         labels=["Benign", "Infiltration"],
-        title="World Model Infiltration Confusion Matrix",
+        title=f"World Model Confusion Matrix (Thresh={best_wm_thresh:.2f})",
         output_path=plots_dir / "cm_world_model.png",
     )
 
     cm_base = confusion_matrix(
-        y_test_inf, (baseline.predict_proba(test_seq["X"]) >= 0.5).astype(int), labels=[0, 1]
+        y_test_inf, (baseline.predict_proba(test_seq["X"]) >= best_base_thresh).astype(int), labels=[0, 1]
     )
     save_confusion_matrix_plot(
         cm_base,
         labels=["Benign", "Infiltration"],
-        title="Baseline (Logistic Regression) Confusion Matrix",
+        title=f"Baseline Confusion Matrix (Thresh={best_base_thresh:.2f})",
         output_path=plots_dir / "cm_baseline.png",
     )
 
@@ -290,7 +332,7 @@ def main():
         output_path=plots_dir / "roc_curve.png",
     )
 
-    # 8. Save Metrics JSON & Markdown
+    # 9. Save Metrics JSON & Markdown
     all_metrics = {
         "is_synthetic": bool(args.synthetic),
         "num_test_sequences": len(test_seq["X"]),
@@ -314,14 +356,15 @@ def main():
 
 > **Data Source**: {"SYNTHETIC (smoke-test only, not for reporting)" if args.synthetic else "CIC-IDS-2018 Cleaned Telemetry"}  
 > **Evaluation Split**: Strict Time-Based Partition ({len(test_seq['X'])} test sequences)  
+> **Validation Threshold Tuning**: World Model = {best_wm_thresh:.4f}, Baseline = {best_base_thresh:.4f}  
 > **Forecast Horizon**: K = {k_rollout} windows ({k_rollout * window_sec}s forward)
 
 ## Step t+1 Forecasting Performance
 
-| Model | F1-Score | Precision | Recall | False Positive Rate (FPR) | ROC-AUC | Accuracy |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **World Model (Ours)** | **{wm_metrics['f1']:.4f}** | **{wm_metrics['precision']:.4f}** | **{wm_metrics['recall']:.4f}** | **{wm_metrics['fpr']:.4f}** | **{wm_metrics['roc_auc']:.4f}** | **{wm_metrics['accuracy']:.4f}** |
-| **Baseline (Logistic Reg.)** | {base_metrics['f1']:.4f} | {base_metrics['precision']:.4f} | {base_metrics['recall']:.4f} | {base_metrics['fpr']:.4f} | {base_metrics['roc_auc']:.4f} | {base_metrics['accuracy']:.4f} |
+| Model | Decision Threshold | F1-Score | Precision | Recall | False Positive Rate (FPR) | ROC-AUC | Accuracy |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **World Model (Ours)** | **{best_wm_thresh:.2f}** | **{wm_metrics['f1']:.4f}** | **{wm_metrics['precision']:.4f}** | **{wm_metrics['recall']:.4f}** | **{wm_metrics['fpr']:.4f}** | **{wm_metrics['roc_auc']:.4f}** | **{wm_metrics['accuracy']:.4f}** |
+| **Baseline (Logistic Reg.)** | {best_base_thresh:.2f} | {base_metrics['f1']:.4f} | {base_metrics['precision']:.4f} | {base_metrics['recall']:.4f} | {base_metrics['fpr']:.4f} | {base_metrics['roc_auc']:.4f} | {base_metrics['accuracy']:.4f} |
 
 ## Autoregressive Rollout Degradation (K-Step Ahead)
 
@@ -335,11 +378,12 @@ def main():
 
     md_content += f"""
 ## Zero-Shot Attack Generalization Test (Holdout: {holdout_attack_name})
-- **Status**: {gen_metrics.get('note', f"Evaluated on {gen_metrics.get('sample_count', 0)} holdout windows.")}
+- **Sample Composition**: {gen_metrics.get('attack_samples', 0)} attack windows, {gen_metrics.get('benign_samples', 0)} benign windows (Total: {gen_metrics.get('sample_count', 0)})
+- **FPR Explanation**: {gen_metrics.get('fpr_explanation', 'N/A')}
 """
     if "world_model" in gen_metrics:
         gm = gen_metrics["world_model"]
-        md_content += f"- **World Model F1 on Unseen Attack**: {gm['f1']:.4f} (Recall: {gm['recall']:.4f}, FPR: {gm['fpr']:.4f})\n"
+        md_content += f"- **World Model Performance on Unseen Attack**: F1 = **{gm['f1']:.4f}** (Precision = {gm['precision']:.4f}, Recall = {gm['recall']:.4f}, FPR = {gm['fpr']:.4f})\n"
 
     with open(metrics_md_path, "w", encoding="utf-8") as f:
         f.write(md_content)

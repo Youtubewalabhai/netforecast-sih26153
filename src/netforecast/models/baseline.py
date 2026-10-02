@@ -58,18 +58,37 @@ class BaselineKStepClassifier:
         # Return probability of positive class (infiltration)
         return self.model.predict_proba(X_flat)[:, 1]
 
-    def predict(self, X: np.ndarray, threshold: float = 0.5) -> np.ndarray:
-        """Predict binary infiltration class."""
+    def tune_threshold(self, X_val: np.ndarray, y_val: np.ndarray) -> float:
+        """Find optimal decision threshold by maximizing F1 score on validation set."""
+        probs = self.predict_proba(X_val)
+        y_val_flat = y_val.ravel()
+        
+        best_f1 = -1.0
+        best_thresh = 0.5
+        for t in np.linspace(0.01, 0.99, 99):
+            preds = (probs >= t).astype(int)
+            score = f1_score(y_val_flat, preds, zero_division=0)
+            if score > best_f1:
+                best_f1 = score
+                best_thresh = float(t)
+        
+        self.optimal_threshold = best_thresh
+        return best_thresh
+
+    def predict(self, X: np.ndarray, threshold: Optional[float] = None) -> np.ndarray:
+        """Predict binary infiltration class using tuned or given threshold."""
+        t = threshold if threshold is not None else getattr(self, "optimal_threshold", 0.5)
         probs = self.predict_proba(X)
-        return (probs >= threshold).astype(int)
+        return (probs >= t).astype(int)
 
     def evaluate(
-        self, X: np.ndarray, y_true: np.ndarray, threshold: float = 0.5
+        self, X: np.ndarray, y_true: np.ndarray, threshold: Optional[float] = None
     ) -> Dict[str, float]:
         """Compute precision, recall, F1, FPR, ROC-AUC."""
+        t = threshold if threshold is not None else getattr(self, "optimal_threshold", 0.5)
         y_true_flat = y_true.ravel()
         probs = self.predict_proba(X)
-        preds = (probs >= threshold).astype(int)
+        preds = (probs >= t).astype(int)
 
         prec = precision_score(y_true_flat, preds, zero_division=0)
         rec = recall_score(y_true_flat, preds, zero_division=0)
