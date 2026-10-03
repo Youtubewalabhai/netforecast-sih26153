@@ -4,15 +4,18 @@ SIH26153 - Team CHECK_MATE
 """
 
 import io
+import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
-# Ensure 'src' is in sys.path for Streamlit Cloud & local execution
+# Ensure 'src' and project root are at the top of sys.path
 _root = Path(__file__).resolve().parent.parent
 _src = _root / "src"
-if str(_src) not in sys.path:
-    sys.path.insert(0, str(_src))
+
+for _p in [str(_src), str(_root)]:
+    if _p in sys.path:
+        sys.path.remove(_p)
+    sys.path.insert(0, _p)
 
 import numpy as np
 import pandas as pd
