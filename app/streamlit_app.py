@@ -69,7 +69,7 @@ st.markdown(
 @st.cache_resource
 def load_config_and_model():
     """Load configuration, mapper, and trained PyTorch World Model."""
-    config_path = Path("config.yaml")
+    config_path = _root / "config.yaml"
     if config_path.exists():
         with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
@@ -88,7 +88,7 @@ def load_config_and_model():
         }
 
     mapper = MitreMapper(config)
-    model_path = Path("models/world_model.pt")
+    model_path = _root / "models" / "world_model.pt"
 
     if model_path.exists():
         checkpoint = torch.load(model_path, map_location="cpu")
@@ -156,7 +156,7 @@ def main():
     elif mode == "Upload Packet PCAP":
         uploaded_pcap = st.sidebar.file_uploader("Upload PCAP/PCAPNG capture", type=["pcap", "pcapng"])
         if uploaded_pcap is not None:
-            temp_pcap_path = Path("scratch/uploaded_temp.pcap")
+            temp_pcap_path = _root / "scratch" / "uploaded_temp.pcap"
             temp_pcap_path.parent.mkdir(parents=True, exist_ok=True)
             with open(temp_pcap_path, "wb") as f:
                 f.write(uploaded_pcap.getbuffer())
@@ -171,7 +171,7 @@ def main():
         else:
             st.info("👆 Please upload a .pcap file or click below to generate a sample PCAP.")
             if st.button("Generate & Process Sample Test PCAP"):
-                sample_pcap_path = Path("scratch/sample_demo.pcap")
+                sample_pcap_path = _root / "scratch" / "sample_demo.pcap"
                 create_sample_pcap(sample_pcap_path, num_packets=50)
                 pcap_df = extract_features_from_pcap(sample_pcap_path, window_seconds=window_sec)
                 st.success("Generated and parsed Scapy test PCAP:")
