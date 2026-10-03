@@ -41,24 +41,29 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling
+# Custom Styling - High Contrast for both Light & Dark themes
 st.markdown(
     """
     <style>
-    .main {
-        background-color: #0b0f19;
-        color: #e2e8f0;
-    }
     .stMetric {
-        background-color: #1a2234;
-        padding: 15px;
-        border-radius: 8px;
-        border-left: 4px solid #3b82f6;
+        background: rgba(30, 41, 59, 0.06);
+        padding: 14px 18px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-left: 5px solid #3b82f6;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.7rem !important;
+        font-weight: 700 !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
     }
     .mitre-badge {
         display: inline-block;
         padding: 4px 10px;
-        border-radius: 4px;
+        border-radius: 6px;
         font-weight: bold;
         font-size: 12px;
         color: white;
@@ -146,7 +151,7 @@ def main():
 
     if mode == "Demo Mode (Pre-loaded / Synthetic Attack)":
         source_description = "Synthetic Network Telemetry Sequence (Demo Mode - Offline)"
-        df_flows = generate_synthetic_flows(num_samples=400, random_state=42)
+        df_flows = generate_synthetic_flows(num_samples=1500, random_state=42, time_span_seconds=300.0)
     elif mode == "Upload Flow CSV (CIC-IDS-2018)":
         uploaded_file = st.sidebar.file_uploader("Upload Network Flow CSV", type=["csv"])
         if uploaded_file is not None:
@@ -196,11 +201,11 @@ def main():
     col3.metric("Observed Infiltrations", infil_windows)
     col4.metric("Attack Window %", f"{attack_ratio:.1f}%")
 
-    # Temporal Sequence Rollout
-    seq_len = 12
-    if len(state_df) < (seq_len + k_rollout):
+    # Temporal Sequence Rollout (Dynamic sequence adaptation)
+    seq_len = min(12, max(2, len(state_df) - k_rollout))
+    if len(state_df) < (seq_len + k_rollout) or seq_len < 2:
         st.warning(
-            f"Dataset has {len(state_df)} windows, but at least {seq_len + k_rollout} are required for {seq_len}-step sequence rollout."
+            f"Dataset has {len(state_df)} windows. Need at least {k_rollout + 2} windows for forecast rollout."
         )
         return
 
@@ -277,7 +282,7 @@ def main():
         title="Network Infiltration Risk Trajectory Over Time Windows",
         xaxis_title="Time Window Index ($S_t$)",
         yaxis_title="Predicted Infiltration Probability $P(Infiltration)$",
-        template="plotly_dark",
+        template="plotly_white",
         height=400,
         hovermode="x unified",
     )
@@ -333,7 +338,7 @@ def main():
             title=f"Feature Attributions ({explanation['method']})",
             color="importance",
             color_continuous_scale="Viridis",
-            template="plotly_dark",
+            template="plotly_white",
             height=280,
         )
         fig_feat.update_layout(yaxis=dict(autorange="reversed"))

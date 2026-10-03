@@ -134,7 +134,9 @@ def load_multiple_csvs(
 
 
 def generate_synthetic_flows(
-    num_samples: int = 500, random_state: int = 42
+    num_samples: int = 1200,
+    random_state: int = 42,
+    time_span_seconds: float = 300.0,
 ) -> pd.DataFrame:
     """Generate synthetic network flow data ONLY for unit tests and smoke tests.
 
@@ -142,19 +144,21 @@ def generate_synthetic_flows(
     """
     np.random.seed(random_state)
     start_time = pd.Timestamp("2026-01-01 10:00:00")
+    # Evenly distribute flows over time_span_seconds to construct 30+ state windows
+    time_offsets = np.sort(np.random.uniform(0, time_span_seconds, size=num_samples))
     timestamps = [
-        start_time + pd.Timedelta(milliseconds=i * 200) for i in range(num_samples)
+        start_time + pd.Timedelta(seconds=float(s)) for s in time_offsets
     ]
 
     labels = []
-    # 70% Benign, 15% FTP-BruteForce, 15% Infiltration
+    # 60% Benign, 20% FTP-BruteForce (Initial Access), 20% Infiltration (Lateral Movement)
     for i in range(num_samples):
-        if i < int(num_samples * 0.70):
+        if i < int(num_samples * 0.60):
             labels.append("Benign")
-        elif i < int(num_samples * 0.85):
+        elif i < int(num_samples * 0.80):
             labels.append("FTP-BruteForce")
         else:
-            labels.append("Infiltration")
+            labels.append("Infilteration")
 
     data = {
         "Timestamp": timestamps,
