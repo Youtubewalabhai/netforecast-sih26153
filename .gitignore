@@ -36,8 +36,8 @@ ENV/
 *.swp
 *.swo
 
-# Datasets & Local Data
-data/
+# Datasets & Local Data (Root only)
+/data/
 *.pcap
 *.pcapng
 *.csv
